@@ -1,0 +1,110 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Definição da estrutura da Árvore de Decisão
+class DecisionNode:
+    def __init__(self, question=None, left=None, right=None, result=None):
+        self.question = question  # Pergunta do nó (ex.: "Risco > 5%?")
+        self.left = left  # Subárvore ou decisão à esquerda
+        self.right = right  # Subárvore ou decisão à direita
+        self.result = result  # Resultado final (para nós folha)
+
+    def is_leaf(self):
+        return self.result is not None
+
+# Função para construir a Árvore de Decisão
+def build_tree():
+    # Nó folha: Não invista
+    avoid_investment = DecisionNode(result="Não invista")
+
+    # Nó folha: Invista
+    invest = DecisionNode(result="Invista")
+
+    # Nó intermediário: Custo > 500?
+    cost_question = DecisionNode(
+        question="Custo > 500?",
+        left=invest,  # Se falso, invista
+        right=avoid_investment  # Se verdadeiro, não invista
+    )
+
+    # Nó raiz: Risco > 5%?
+    root = DecisionNode(
+        question="Risco > 5%",
+        left=cost_question,  # Se falso, avalie o custo
+        right=avoid_investment  # Se verdadeiro, não invista
+    )
+
+    return root
+
+# Função para navegar na árvore e tomar decisões
+def evaluate_tree(node, risk, cost):
+    if node.is_leaf():
+        return node.result
+
+    # Avalia a pergunta do nó
+    if node.question == "Risco > 5%":
+        if risk > 5:
+            return evaluate_tree(node.right, risk, cost)
+        else:
+            return evaluate_tree(node.left, risk, cost)
+
+    elif node.question == "Custo > 500?":
+        if cost > 500:
+            return evaluate_tree(node.right, risk, cost)
+        else:
+            return evaluate_tree(node.left, risk, cost)
+
+# Função para gerar dados aleatórios
+def generate_random_data(n_samples):
+    risks = np.random.uniform(1, 10, n_samples)  # Risco (%)
+    costs = np.random.uniform(100, 1000, n_samples)  # Custo (R$)
+    return risks, costs
+
+# Função para avaliar múltiplos cenários
+def evaluate_multiple_cases(tree, risks, costs):
+    decisions = []
+    for risk, cost in zip(risks, costs):
+        decision = evaluate_tree(tree, risk, cost)
+        decisions.append((risk, cost, decision))
+    return decisions
+
+# Função para plotar os resultados
+def plot_results(results):
+    # Separando os dados para o gráfico
+    risks_inv = [r for r, c, d in results if d == "Invista"]
+    costs_inv = [c for r, c, d in results if d == "Invista"]
+    risks_avoid = [r for r, c, d in results if d == "Não invista"]
+    costs_avoid = [c for r, c, d in results if d == "Não invista"]
+
+    # Plotando os resultados
+    plt.figure(figsize=(8, 6))
+    plt.scatter(risks_inv, costs_inv, color="green", label="Invista")
+    plt.scatter(risks_avoid, costs_avoid, color="red", label="Não Invista")
+    plt.axhline(500, color="blue", linestyle="--", label="Limite de Custo")
+    plt.axvline(5, color="purple", linestyle="--", label="Limite de Risco")
+    plt.xlabel("Risco (%)")
+    plt.ylabel("Custo (R$)")
+    plt.title("Decisões de Investimento")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+# Main: Executando o programa
+if __name__ == "__main__":
+    # Construindo a árvore de decisão
+    tree = build_tree()
+
+    # Gerando dados para 10 ativos
+    n_samples = 10
+    test_risks, test_costs = generate_random_data(n_samples)
+
+    # Avaliando os casos gerados
+    results = evaluate_multiple_cases(tree, test_risks, test_costs)
+
+    # Exibindo os resultados
+    print("Resultados das Decisões:")
+    for i, (risk, cost, decision) in enumerate(results):
+        print(f"Ativo {i+1}: Risco = {risk:.2f}%, Custo = R${cost:.2f}, Decisão = {decision}")
+
+    # Plotando os resultados
+    plot_results(results)
